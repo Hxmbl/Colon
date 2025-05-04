@@ -53,7 +53,7 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
     _currentTime = _getCurrentTime();
-    _timer = Timer.periodic(const Duration(milliseconds: 10), (Timer timer) {
+    _timer = Timer.periodic(const Duration(milliseconds: 1), (Timer timer) {
       setState(() {
         _currentTime = _getCurrentTime();
       });
