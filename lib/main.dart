@@ -79,7 +79,7 @@ class _MyHomePageState extends State<MyHomePage> {
     String period = '';
 
     // Format the date
-    final dayOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][now.weekday % 7];
+    final dayOfWeek = [' Sun', ' Mon', ' Tue', ' Wed', ' Thu', ' Fri', ' Sat'][now.weekday % 7];
     final month = [
       'January',
       'February',
