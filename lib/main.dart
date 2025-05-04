@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
@@ -36,6 +37,7 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   late String _currentTime;
   late Timer _timer;
+  late SharedPreferences _prefs;
   bool _is24HourFormat = true;
   bool _showSeconds = true;
   bool _showMilliseconds = false;
@@ -52,6 +54,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
+    _loadSettings();
     _currentTime = _getCurrentTime();
     _timer = Timer.periodic(const Duration(milliseconds: 1), (Timer timer) {
       setState(() {
@@ -61,6 +64,36 @@ class _MyHomePageState extends State<MyHomePage> {
 
     // Prevent the device from sleeping
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  }
+
+  Future<void> _loadSettings() async {
+    _prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _is24HourFormat = _prefs.getBool('is24HourFormat') ?? true;
+      _showSeconds = _prefs.getBool('showSeconds') ?? true;
+      _showMilliseconds = _prefs.getBool('showMilliseconds') ?? false;
+      _fontSize = _prefs.getDouble('fontSize') ?? 128;
+      _millisecondsFontSize = _prefs.getDouble('millisecondsFontSize') ?? 64;
+      _dateFontSize = _prefs.getDouble('dateFontSize') ?? 32;
+      _amPmFontSize = _prefs.getDouble('amPmFontSize') ?? 32;
+      _backgroundColor = Color(_prefs.getInt('backgroundColor') ?? Colors.black.value);
+      _textColor = Color(_prefs.getInt('textColor') ?? Colors.white.value);
+      _backgroundImagePath = _prefs.getString('backgroundImagePath');
+      _blurIntensity = _prefs.getDouble('blurIntensity') ?? 0.0;
+      _textAlignment = _alignmentFromIndex(_prefs.getInt('textAlignment') ?? 3);
+    });
+  }
+
+  void _saveSetting(String key, dynamic value) async {
+    if (value is bool) {
+      await _prefs.setBool(key, value);
+    } else if (value is double) {
+      await _prefs.setDouble(key, value);
+    } else if (value is int) {
+      await _prefs.setInt(key, value);
+    } else if (value is String) {
+      await _prefs.setString(key, value);
+    }
   }
 
   @override
@@ -116,6 +149,35 @@ class _MyHomePageState extends State<MyHomePage> {
     return _is24HourFormat
         ? '$date|$time$milliseconds'
         : '$date|$time$milliseconds|$period';
+  }
+
+  Alignment _alignmentFromIndex(int index) {
+    switch (index) {
+      case 0:
+        return Alignment.topLeft;
+      case 1:
+        return Alignment.topRight;
+      case 2:
+        return Alignment.centerLeft;
+      case 3:
+        return Alignment.centerRight;
+      case 4:
+        return Alignment.bottomLeft;
+      case 5:
+        return Alignment.bottomRight;
+      default:
+        return Alignment.centerRight; // Default alignment
+    }
+  }
+
+  int _alignmentToIndex(Alignment alignment) {
+    if (alignment == Alignment.topLeft) return 0;
+    if (alignment == Alignment.topRight) return 1;
+    if (alignment == Alignment.centerLeft) return 2;
+    if (alignment == Alignment.centerRight) return 3;
+    if (alignment == Alignment.bottomLeft) return 4;
+    if (alignment == Alignment.bottomRight) return 5;
+    return 3; // Default alignment index
   }
 
   @override
@@ -221,6 +283,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       onTextAlignmentChanged: (value) {
                         setState(() {
                           _textAlignment = value;
+                          _saveSetting('textAlignment', _alignmentToIndex(value));
                         });
                       },
                       backgroundColor: _backgroundColor,
@@ -228,37 +291,44 @@ class _MyHomePageState extends State<MyHomePage> {
                       onBackgroundColorChanged: (color) {
                         setState(() {
                           _backgroundColor = color;
+                          _saveSetting('backgroundColor', color.value);
                         });
                       },
                       onTextColorChanged: (color) {
                         setState(() {
                           _textColor = color;
+                          _saveSetting('textColor', color.value);
                         });
                       },
                       blurIntensity: _blurIntensity,
                       onBlurIntensityChanged: (value) {
                         setState(() {
                           _blurIntensity = value;
+                          _saveSetting('blurIntensity', value);
                         });
                       },
                       backgroundImagePath: _backgroundImagePath,
                       onBackgroundImageChanged: (path) {
                         setState(() {
                           _backgroundImagePath = path;
+                          _saveSetting('backgroundImagePath', path ?? '');
                         });
                       },
                       is24HourFormat: _is24HourFormat,
                       onTimeFormatChanged: (value) {
                         setState(() {
                           _is24HourFormat = value;
+                          _saveSetting('is24HourFormat', value);
                         });
                       },
                       showSeconds: _showSeconds,
                       onShowSecondsChanged: (value) {
                         setState(() {
                           _showSeconds = value;
+                          _saveSetting('showSeconds', value);
                           if (!value) {
                             _showMilliseconds = false; // Turn off milliseconds if seconds are off
+                            _saveSetting('showMilliseconds', false);
                           }
                         });
                       },
@@ -267,6 +337,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         if (_showSeconds) {
                           setState(() {
                             _showMilliseconds = value;
+                            _saveSetting('showMilliseconds', value);
                           });
                         }
                       },
@@ -274,24 +345,28 @@ class _MyHomePageState extends State<MyHomePage> {
                       onFontSizeChanged: (value) {
                         setState(() {
                           _fontSize = value;
+                          _saveSetting('fontSize', value);
                         });
                       },
                       millisecondsFontSize: _millisecondsFontSize,
                       onMillisecondsFontSizeChanged: (value) {
                         setState(() {
                           _millisecondsFontSize = value;
+                          _saveSetting('millisecondsFontSize', value);
                         });
                       },
                       dateFontSize: _dateFontSize,
                       onDateFontSizeChanged: (value) {
                         setState(() {
                           _dateFontSize = value;
+                          _saveSetting('dateFontSize', value);
                         });
                       },
                       amPmFontSize: _amPmFontSize,
                       onAmPmFontSizeChanged: (value) {
                         setState(() {
                           _amPmFontSize = value;
+                          _saveSetting('amPmFontSize', value);
                         });
                       },
                     ),
