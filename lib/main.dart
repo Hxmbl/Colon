@@ -34,7 +34,6 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   late String _currentTime;
   late Timer _timer;
   bool _is24HourFormat = true;
@@ -43,8 +42,8 @@ class _MyHomePageState extends State<MyHomePage> {
   double _fontSize = 128;
   Color _backgroundColor = Colors.black;
   Color _textColor = Colors.white;
-  String? _backgroundImagePath; // Path to the selected background image
-  double _blurIntensity = 0.0; // Blur intensity for the background
+  String? _backgroundImagePath;
+  double _blurIntensity = 0.0;
 
   @override
   void initState() {
@@ -64,7 +63,7 @@ class _MyHomePageState extends State<MyHomePage> {
   void dispose() {
     _timer.cancel();
 
-    // Allow the device to sleep again (optional)
+    // Allow the device to sleep again
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
     super.dispose();
@@ -94,59 +93,6 @@ class _MyHomePageState extends State<MyHomePage> {
     return _is24HourFormat ? time : '$time $period';
   }
 
-  void _toggleTimeFormat() {
-    setState(() {
-      _is24HourFormat = !_is24HourFormat;
-    });
-  }
-
-  void _toggleSeconds() {
-    setState(() {
-      _showSeconds = !_showSeconds;
-      if (!_showSeconds) {
-        _showMilliseconds = false; // Turn off milliseconds if seconds are off
-      }
-    });
-  }
-
-  void _toggleMilliseconds() {
-    if (_showSeconds) {
-      setState(() {
-        _showMilliseconds = !_showMilliseconds;
-      });
-    }
-  }
-
-  void _updateFontSize(double newSize) {
-    setState(() {
-      _fontSize = newSize;
-    });
-  }
-
-  void _updateBackgroundColor(Color color) {
-    setState(() {
-      _backgroundColor = color;
-    });
-  }
-
-  void _updateTextColor(Color color) {
-    setState(() {
-      _textColor = color;
-    });
-  }
-
-  void _updateBackgroundImage(String? path) {
-    setState(() {
-      _backgroundImagePath = path;
-    });
-  }
-
-  void _updateBlurIntensity(double intensity) {
-    setState(() {
-      _blurIntensity = intensity;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -157,18 +103,11 @@ class _MyHomePageState extends State<MyHomePage> {
             Positioned.fill(
               child: Image.file(
                 File(_backgroundImagePath!),
-                fit: BoxFit.cover,
+                fit: BoxFit.cover, // Adjust the image to cover the entire screen
               ),
             ),
-          // Apply background color if no image is selected
-          if (_backgroundImagePath == null && _backgroundColor != Colors.transparent)
-            Positioned.fill(
-              child: Container(
-                color: _backgroundColor,
-              ),
-            ),
-          // Apply blur effect with BackdropFilter
-          if (_blurIntensity > 0)
+          // Apply blur effect with BackdropFilter if blur intensity is greater than 0
+          if (_backgroundImagePath != null && _blurIntensity > 0)
             Positioned.fill(
               child: BackdropFilter(
                 filter: ImageFilter.blur(
@@ -180,39 +119,22 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               ),
             ),
+          // Apply background color if no image is selected
+          if (_backgroundImagePath == null)
+            Container(
+              color: _backgroundColor,
+            ),
+          // Centered clock text
           Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Text(
-                      _currentTime.split(' ')[0],
-                      style: TextStyle(
-                        fontSize: _fontSize,
-                        fontWeight: FontWeight.bold,
-                        color: _textColor,
-                      ),
-                    ),
-                    if (!_is24HourFormat)
-                      Positioned(
-                        top: 0,
-                        right: 0,
-                        child: Text(
-                          _currentTime.split(' ').length > 1 ? _currentTime.split(' ')[1] : '',
-                          style: TextStyle(
-                            fontSize: _fontSize / 10,
-                            fontWeight: FontWeight.bold,
-                            color: _textColor,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ],
+            child: Text(
+              _currentTime,
+              style: TextStyle(
+                fontSize: _fontSize,
+                color: _textColor,
+              ),
             ),
           ),
+          // Settings button in the top-right corner
           Align(
             alignment: Alignment.topRight,
             child: IconButton(
@@ -225,12 +147,28 @@ class _MyHomePageState extends State<MyHomePage> {
                     builder: (context) => ThemeSettingsPage(
                       backgroundColor: _backgroundColor,
                       textColor: _textColor,
-                      onBackgroundColorChanged: _updateBackgroundColor,
-                      onTextColorChanged: _updateTextColor,
+                      onBackgroundColorChanged: (color) {
+                        setState(() {
+                          _backgroundColor = color;
+                        });
+                      },
+                      onTextColorChanged: (color) {
+                        setState(() {
+                          _textColor = color;
+                        });
+                      },
                       blurIntensity: _blurIntensity,
-                      onBlurIntensityChanged: _updateBlurIntensity,
+                      onBlurIntensityChanged: (value) {
+                        setState(() {
+                          _blurIntensity = value;
+                        });
+                      },
                       backgroundImagePath: _backgroundImagePath,
-                      onBackgroundImageChanged: _updateBackgroundImage,
+                      onBackgroundImageChanged: (path) {
+                        setState(() {
+                          _backgroundImagePath = path;
+                        });
+                      },
                       is24HourFormat: _is24HourFormat,
                       onTimeFormatChanged: (value) {
                         setState(() {
