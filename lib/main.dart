@@ -39,11 +39,15 @@ class _MyHomePageState extends State<MyHomePage> {
   bool _is24HourFormat = true;
   bool _showSeconds = true;
   bool _showMilliseconds = false;
-  double _fontSize = 128;
+  double _fontSize = 128; // Time font size
+  double _millisecondsFontSize = 64; // Milliseconds font size
+  double _dateFontSize = 32; // Date font size
+  double _amPmFontSize = 32; // AM/PM font size
   Color _backgroundColor = Colors.black;
   Color _textColor = Colors.white;
   String? _backgroundImagePath;
   double _blurIntensity = 0.0;
+  Alignment _textAlignment = Alignment.centerRight; // Default alignment
 
   @override
   void initState() {
@@ -74,6 +78,25 @@ class _MyHomePageState extends State<MyHomePage> {
     String time;
     String period = '';
 
+    // Format the date
+    final dayOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][now.weekday % 7];
+    final month = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December'
+    ][now.month - 1];
+    final date = '$dayOfWeek ${now.day} $month ${now.year}';
+
+    // Format the time
     if (_is24HourFormat) {
       time = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
     } else {
@@ -86,15 +109,23 @@ class _MyHomePageState extends State<MyHomePage> {
       time += ':${now.second.toString().padLeft(2, '0')}';
     }
 
-    if (_showMilliseconds && _showSeconds) {
-      time += '.${now.millisecond.toString().padLeft(3, '0')}';
-    }
+    // Append milliseconds only if enabled
+    final milliseconds = _showMilliseconds ? '.${now.millisecond.toString().padLeft(3, '0')}' : '';
 
-    return _is24HourFormat ? time : '$time $period';
+    // Return the formatted string
+    return _is24HourFormat
+        ? '$date|$time$milliseconds'
+        : '$date|$time$milliseconds|$period';
   }
 
   @override
   Widget build(BuildContext context) {
+    final parts = _currentTime.split('|'); // Split date, time, and AM/PM
+    final date = parts[0];
+    final time = parts[1].split('.')[0]; // Extract time without milliseconds
+    final milliseconds = parts[1].contains('.') ? parts[1].split('.')[1] : ''; // Extract milliseconds
+    final amPm = parts.length > 2 ? parts[2] : '';
+
     return Scaffold(
       body: Stack(
         children: [
@@ -126,11 +157,52 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           // Centered clock text
           Center(
-            child: Text(
-              _currentTime,
-              style: TextStyle(
-                fontSize: _fontSize,
-                color: _textColor,
+            child: Align(
+              alignment: _textAlignment,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: _textAlignment == Alignment.centerLeft
+                    ? CrossAxisAlignment.start
+                    : CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    date, // Display the date
+                    style: TextStyle(
+                      fontSize: _dateFontSize,
+                      color: _textColor,
+                    ),
+                  ),
+                  RichText(
+                    textAlign: _textAlignment == Alignment.centerLeft
+                        ? TextAlign.left
+                        : TextAlign.right,
+                    text: TextSpan(
+                      text: time, // Main time without milliseconds
+                      style: TextStyle(
+                        fontSize: _fontSize,
+                        color: _textColor,
+                      ),
+                      children: [
+                        if (_showMilliseconds)
+                          TextSpan(
+                            text: '.$milliseconds', // Milliseconds
+                            style: TextStyle(
+                              fontSize: _millisecondsFontSize,
+                              color: _textColor,
+                            ),
+                          ),
+                        if (!_is24HourFormat && amPm.isNotEmpty)
+                          TextSpan(
+                            text: ' $amPm', // AM/PM
+                            style: TextStyle(
+                              fontSize: _amPmFontSize,
+                              color: _textColor,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -145,6 +217,12 @@ class _MyHomePageState extends State<MyHomePage> {
                   context,
                   MaterialPageRoute(
                     builder: (context) => ThemeSettingsPage(
+                      textAlignment: _textAlignment,
+                      onTextAlignmentChanged: (value) {
+                        setState(() {
+                          _textAlignment = value;
+                        });
+                      },
                       backgroundColor: _backgroundColor,
                       textColor: _textColor,
                       onBackgroundColorChanged: (color) {
@@ -198,6 +276,24 @@ class _MyHomePageState extends State<MyHomePage> {
                           _fontSize = value;
                         });
                       },
+                      millisecondsFontSize: _millisecondsFontSize,
+                      onMillisecondsFontSizeChanged: (value) {
+                        setState(() {
+                          _millisecondsFontSize = value;
+                        });
+                      },
+                      dateFontSize: _dateFontSize,
+                      onDateFontSizeChanged: (value) {
+                        setState(() {
+                          _dateFontSize = value;
+                        });
+                      },
+                      amPmFontSize: _amPmFontSize,
+                      onAmPmFontSizeChanged: (value) {
+                        setState(() {
+                          _amPmFontSize = value;
+                        });
+                      },
                     ),
                   ),
                 );
@@ -211,6 +307,8 @@ class _MyHomePageState extends State<MyHomePage> {
 }
 
 class ThemeSettingsPage extends StatefulWidget {
+  final Alignment textAlignment;
+  final ValueChanged<Alignment> onTextAlignmentChanged;
   final Color backgroundColor;
   final Color textColor;
   final ValueChanged<Color> onBackgroundColorChanged;
@@ -227,9 +325,17 @@ class ThemeSettingsPage extends StatefulWidget {
   final ValueChanged<bool> onShowMillisecondsChanged;
   final double fontSize;
   final ValueChanged<double> onFontSizeChanged;
+  final double millisecondsFontSize;
+  final ValueChanged<double> onMillisecondsFontSizeChanged;
+  final double dateFontSize;
+  final ValueChanged<double> onDateFontSizeChanged;
+  final double amPmFontSize;
+  final ValueChanged<double> onAmPmFontSizeChanged;
 
   const ThemeSettingsPage({
     super.key,
+    required this.textAlignment,
+    required this.onTextAlignmentChanged,
     required this.backgroundColor,
     required this.textColor,
     required this.onBackgroundColorChanged,
@@ -246,6 +352,12 @@ class ThemeSettingsPage extends StatefulWidget {
     required this.onShowMillisecondsChanged,
     required this.fontSize,
     required this.onFontSizeChanged,
+    required this.millisecondsFontSize,
+    required this.onMillisecondsFontSizeChanged,
+    required this.dateFontSize,
+    required this.onDateFontSizeChanged,
+    required this.amPmFontSize,
+    required this.onAmPmFontSizeChanged,
   });
 
   @override
@@ -255,20 +367,28 @@ class ThemeSettingsPage extends StatefulWidget {
 class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   late double _currentBlurIntensity;
   late double _currentFontSize;
+  late double _currentMillisecondsFontSize;
+  late double _currentDateFontSize;
+  late double _currentAmPmFontSize;
   late bool _currentIs24HourFormat;
   late bool _currentShowSeconds;
   late bool _currentShowMilliseconds;
+  late Alignment _currentTextAlignment;
   String? _currentBackgroundImagePath;
 
   @override
   void initState() {
     super.initState();
-    _currentBlurIntensity = widget.blurIntensity; // Initialize with the passed blur intensity
-    _currentFontSize = widget.fontSize; // Initialize with the passed font size
-    _currentIs24HourFormat = widget.is24HourFormat; // Initialize with the passed 24-hour format
-    _currentShowSeconds = widget.showSeconds; // Initialize with the passed show seconds
-    _currentShowMilliseconds = widget.showMilliseconds; // Initialize with the passed show milliseconds
-    _currentBackgroundImagePath = widget.backgroundImagePath; // Initialize with the passed background image
+    _currentBlurIntensity = widget.blurIntensity;
+    _currentFontSize = widget.fontSize;
+    _currentMillisecondsFontSize = widget.millisecondsFontSize;
+    _currentDateFontSize = widget.dateFontSize;
+    _currentAmPmFontSize = widget.amPmFontSize;
+    _currentIs24HourFormat = widget.is24HourFormat;
+    _currentShowSeconds = widget.showSeconds;
+    _currentShowMilliseconds = widget.showMilliseconds;
+    _currentTextAlignment = widget.textAlignment;
+    _currentBackgroundImagePath = widget.backgroundImagePath;
   }
 
   Future<void> _pickImage() async {
@@ -276,17 +396,17 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
       setState(() {
-        _currentBackgroundImagePath = image.path; // Update the local state
+        _currentBackgroundImagePath = image.path;
       });
-      widget.onBackgroundImageChanged(image.path); // Notify the parent widget
+      widget.onBackgroundImageChanged(image.path);
     }
   }
 
   void _clearImage() {
     setState(() {
-      _currentBackgroundImagePath = null; // Clear the local state
+      _currentBackgroundImagePath = null;
     });
-    widget.onBackgroundImageChanged(null); // Notify the parent widget
+    widget.onBackgroundImageChanged(null);
   }
 
   @override
@@ -296,7 +416,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
         title: const Text('Settings'),
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16.0), // Add padding for better spacing
+        padding: const EdgeInsets.all(16.0),
         children: [
           // Background Color Setting
           ListTile(
@@ -337,21 +457,21 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
               ],
             ),
           ),
-          // Blur Intensity Setting (only show if an image is selected)
+          // Blur Intensity Setting
           if (_currentBackgroundImagePath != null)
             ListTile(
               title: const Text('Blur Intensity'),
               subtitle: Slider(
                 value: _currentBlurIntensity,
                 min: 0.0,
-                max: 20.0, // Increased maximum blur intensity
+                max: 20.0,
                 divisions: 40,
                 label: _currentBlurIntensity.toStringAsFixed(1),
                 onChanged: (value) {
                   setState(() {
-                    _currentBlurIntensity = value; // Update the local state
+                    _currentBlurIntensity = value;
                   });
-                  widget.onBlurIntensityChanged(value); // Notify the parent widget
+                  widget.onBlurIntensityChanged(value);
                 },
               ),
             ),
@@ -362,9 +482,9 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
               value: _currentIs24HourFormat,
               onChanged: (value) {
                 setState(() {
-                  _currentIs24HourFormat = value; // Update the local state
+                  _currentIs24HourFormat = value;
                 });
-                widget.onTimeFormatChanged(value); // Notify the parent widget
+                widget.onTimeFormatChanged(value);
               },
             ),
           ),
@@ -375,12 +495,12 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
               value: _currentShowSeconds,
               onChanged: (value) {
                 setState(() {
-                  _currentShowSeconds = value; // Update the local state
+                  _currentShowSeconds = value;
                   if (!value) {
-                    _currentShowMilliseconds = false; // Turn off milliseconds if seconds are off
+                    _currentShowMilliseconds = false;
                   }
                 });
-                widget.onShowSecondsChanged(value); // Notify the parent widget
+                widget.onShowSecondsChanged(value);
               },
             ),
           ),
@@ -392,16 +512,41 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
               onChanged: (value) {
                 if (_currentShowSeconds) {
                   setState(() {
-                    _currentShowMilliseconds = value; // Update the local state
+                    _currentShowMilliseconds = value;
                   });
-                  widget.onShowMillisecondsChanged(value); // Notify the parent widget
+                  widget.onShowMillisecondsChanged(value);
                 }
               },
             ),
           ),
-          // Font Size Slider
+          // Text Alignment
           ListTile(
-            title: const Text('Font Size'),
+            title: const Text('Text Alignment'),
+            trailing: DropdownButton<Alignment>(
+              value: _currentTextAlignment,
+              items: const [
+                DropdownMenuItem(
+                  value: Alignment.centerLeft,
+                  child: Text('Left'),
+                ),
+                DropdownMenuItem(
+                  value: Alignment.centerRight,
+                  child: Text('Right'),
+                ),
+              ],
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() {
+                    _currentTextAlignment = value;
+                  });
+                  widget.onTextAlignmentChanged(value);
+                }
+              },
+            ),
+          ),
+          // Number Size Slider
+          ListTile(
+            title: const Text('Number Font Size'),
             subtitle: Slider(
               value: _currentFontSize,
               min: 50,
@@ -410,9 +555,60 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
               label: _currentFontSize.round().toString(),
               onChanged: (value) {
                 setState(() {
-                  _currentFontSize = value; // Update the local state
+                  _currentFontSize = value;
                 });
-                widget.onFontSizeChanged(value); // Notify the parent widget
+                widget.onFontSizeChanged(value);
+              },
+            ),
+          ),
+          // Milliseconds Font Size Slider
+          ListTile(
+            title: const Text('Milliseconds Font Size'),
+            subtitle: Slider(
+              value: _currentMillisecondsFontSize,
+              min: 20,
+              max: 100,
+              divisions: 8,
+              label: _currentMillisecondsFontSize.round().toString(),
+              onChanged: (value) {
+                setState(() {
+                  _currentMillisecondsFontSize = value;
+                });
+                widget.onMillisecondsFontSizeChanged(value);
+              },
+            ),
+          ),
+          // Date Font Size Slider
+          ListTile(
+            title: const Text('Date Font Size'),
+            subtitle: Slider(
+              value: _currentDateFontSize,
+              min: 20,
+              max: 100,
+              divisions: 8,
+              label: _currentDateFontSize.round().toString(),
+              onChanged: (value) {
+                setState(() {
+                  _currentDateFontSize = value;
+                });
+                widget.onDateFontSizeChanged(value);
+              },
+            ),
+          ),
+          // AM/PM Font Size Slider
+          ListTile(
+            title: const Text('AM/PM Font Size'),
+            subtitle: Slider(
+              value: _currentAmPmFontSize,
+              min: 20,
+              max: 100,
+              divisions: 8,
+              label: _currentAmPmFontSize.round().toString(),
+              onChanged: (value) {
+                setState(() {
+                  _currentAmPmFontSize = value;
+                });
+                widget.onAmPmFontSizeChanged(value);
               },
             ),
           ),
