@@ -47,7 +47,7 @@ class _MyHomePageState extends State<MyHomePage> {
   double _amPmFontSize = 32; // AM/PM font size
   Color _backgroundColor = Colors.black;
   Color _textColor = Colors.white;
-  String? _backgroundImagePath;
+  String? _backgroundImagePath = null; // Default to no image
   double _blurIntensity = 0.0;
   Alignment _textAlignment = Alignment.centerRight; // Default alignment
 
@@ -191,12 +191,26 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       body: Stack(
         children: [
-          // Show background image if set
-          if (_backgroundImagePath != null)
+          if (_backgroundImagePath == null)
+            Container(
+              color: _backgroundColor == Colors.black ? Colors.grey[850] : _backgroundColor,
+            ),
+          else
             Positioned.fill(
               child: Image.file(
                 File(_backgroundImagePath!),
-                fit: BoxFit.cover, // Adjust the image to cover the entire screen
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    color: Colors.grey[850], // Fallback to default color
+                    child: Center(
+                      child: Text(
+                        'Failed to load image',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           // Apply blur effect with BackdropFilter if blur intensity is greater than 0
@@ -204,18 +218,13 @@ class _MyHomePageState extends State<MyHomePage> {
             Positioned.fill(
               child: BackdropFilter(
                 filter: ImageFilter.blur(
-                  sigmaX: _blurIntensity,
-                  sigmaY: _blurIntensity,
+                  sigmaX: _blurIntensity / 2, // Reduce blur intensity
+                  sigmaY: _blurIntensity / 2,
                 ),
                 child: Container(
-                  color: Colors.black.withOpacity(0), // Transparent overlay to enable blur
+                  color: Colors.black.withOpacity(0.2), // Reduce overlay opacity
                 ),
               ),
-            ),
-          // Apply background color if no image is selected
-          if (_backgroundImagePath == null)
-            Container(
-              color: _backgroundColor,
             ),
           // Centered clock text
           Center(
