@@ -1,8 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="timestandby"
-        android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:label="Colon"
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="true"
+        android:theme="@style/Theme.App"
+        android:name="${applicationName}">
         <activity
             android:name=".MainActivity"
             android:exported="true"
