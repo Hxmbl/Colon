@@ -49,7 +49,8 @@ class _MyHomePageState extends State<MyHomePage> {
   Color _textColor = Colors.white;
   String? _backgroundImagePath = null; // Default to no image
   double _blurIntensity = 0.0;
-  Alignment _textAlignment = Alignment.centerRight; // Default alignment
+  double _textHeight = 0.5; // Default height (centered vertically)
+
 
   @override
   void initState() {
@@ -69,6 +70,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Future<void> _loadSettings() async {
     _prefs = await SharedPreferences.getInstance();
     setState(() {
+      _textHeight = _prefs.getDouble('textHeight') ?? 0.5; // Default to center
       _is24HourFormat = _prefs.getBool('is24HourFormat') ?? true;
       _showSeconds = _prefs.getBool('showSeconds') ?? true;
       _showMilliseconds = _prefs.getBool('showMilliseconds') ?? false;
@@ -80,7 +82,6 @@ class _MyHomePageState extends State<MyHomePage> {
       _textColor = Color(_prefs.getInt('textColor') ?? Colors.white.value);
       _backgroundImagePath = _prefs.getString('backgroundImagePath');
       _blurIntensity = _prefs.getDouble('blurIntensity') ?? 0.0;
-      _textAlignment = _alignmentFromIndex(_prefs.getInt('textAlignment') ?? 3);
     });
   }
 
@@ -150,36 +151,7 @@ class _MyHomePageState extends State<MyHomePage> {
         ? '$date|$time$milliseconds'
         : '$date|$time$milliseconds|$period';
   }
-
-  Alignment _alignmentFromIndex(int index) {
-    switch (index) {
-      case 0:
-        return Alignment.topLeft;
-      case 1:
-        return Alignment.topRight;
-      case 2:
-        return Alignment.centerLeft;
-      case 3:
-        return Alignment.centerRight;
-      case 4:
-        return Alignment.bottomLeft;
-      case 5:
-        return Alignment.bottomRight;
-      default:
-        return Alignment.centerRight; // Default alignment
-    }
-  }
-
-  int _alignmentToIndex(Alignment alignment) {
-    if (alignment == Alignment.topLeft) return 0;
-    if (alignment == Alignment.topRight) return 1;
-    if (alignment == Alignment.centerLeft) return 2;
-    if (alignment == Alignment.centerRight) return 3;
-    if (alignment == Alignment.bottomLeft) return 4;
-    if (alignment == Alignment.bottomRight) return 5;
-    return 3; // Default alignment index
-  }
-
+  
   @override
   Widget build(BuildContext context) {
     final parts = _currentTime.split('|'); // Split date, time, and AM/PM
@@ -194,7 +166,7 @@ class _MyHomePageState extends State<MyHomePage> {
           if (_backgroundImagePath == null)
             Container(
               color: _backgroundColor == Colors.black ? Colors.grey[850] : _backgroundColor,
-            ),
+            )
           else
             Positioned.fill(
               child: Image.file(
@@ -227,54 +199,47 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
             ),
           // Centered clock text
-          Center(
-            child: Align(
-              alignment: _textAlignment,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: _textAlignment == Alignment.centerLeft
-                    ? CrossAxisAlignment.start
-                    : CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    date, // Display the date
+          Positioned(
+            top: MediaQuery.of(context).size.height * _textHeight,
+            left: 16.0, // Always align to the left
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  date, // Display the date
+                  style: TextStyle(
+                    fontSize: _dateFontSize,
+                    color: _textColor,
+                  ),
+                ),
+                RichText(
+                  text: TextSpan(
+                    text: time, // Main time without milliseconds
                     style: TextStyle(
-                      fontSize: _dateFontSize,
+                      fontSize: _fontSize,
                       color: _textColor,
                     ),
-                  ),
-                  RichText(
-                    textAlign: _textAlignment == Alignment.centerLeft
-                        ? TextAlign.left
-                        : TextAlign.right,
-                    text: TextSpan(
-                      text: time, // Main time without milliseconds
-                      style: TextStyle(
-                        fontSize: _fontSize,
-                        color: _textColor,
-                      ),
-                      children: [
-                        if (_showMilliseconds)
-                          TextSpan(
-                            text: '.$milliseconds', // Milliseconds
-                            style: TextStyle(
-                              fontSize: _millisecondsFontSize,
-                              color: _textColor,
-                            ),
+                    children: [
+                      if (_showMilliseconds)
+                        TextSpan(
+                          text: '.$milliseconds', // Milliseconds
+                          style: TextStyle(
+                            fontSize: _millisecondsFontSize,
+                            color: _textColor,
                           ),
-                        if (!_is24HourFormat && amPm.isNotEmpty)
-                          TextSpan(
-                            text: ' $amPm', // AM/PM
-                            style: TextStyle(
-                              fontSize: _amPmFontSize,
-                              color: _textColor,
-                            ),
+                        ),
+                      if (!_is24HourFormat && amPm.isNotEmpty)
+                        TextSpan(
+                          text: ' $amPm', // AM/PM
+                          style: TextStyle(
+                            fontSize: _amPmFontSize,
+                            color: _textColor,
                           ),
-                      ],
-                    ),
+                        ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
           // Settings button in the top-right corner
@@ -288,11 +253,11 @@ class _MyHomePageState extends State<MyHomePage> {
                   context,
                   MaterialPageRoute(
                     builder: (context) => ThemeSettingsPage(
-                      textAlignment: _textAlignment,
-                      onTextAlignmentChanged: (value) {
+                      textHeight: _textHeight,
+                      onTextHeightChanged: (value) {
                         setState(() {
-                          _textAlignment = value;
-                          _saveSetting('textAlignment', _alignmentToIndex(value));
+                          _textHeight = value;
+                          _saveSetting('textHeight', value);
                         });
                       },
                       backgroundColor: _backgroundColor,
@@ -391,8 +356,6 @@ class _MyHomePageState extends State<MyHomePage> {
 }
 
 class ThemeSettingsPage extends StatefulWidget {
-  final Alignment textAlignment;
-  final ValueChanged<Alignment> onTextAlignmentChanged;
   final Color backgroundColor;
   final Color textColor;
   final ValueChanged<Color> onBackgroundColorChanged;
@@ -415,11 +378,11 @@ class ThemeSettingsPage extends StatefulWidget {
   final ValueChanged<double> onDateFontSizeChanged;
   final double amPmFontSize;
   final ValueChanged<double> onAmPmFontSizeChanged;
+  final double textHeight;
+  final ValueChanged<double> onTextHeightChanged;
 
   const ThemeSettingsPage({
     super.key,
-    required this.textAlignment,
-    required this.onTextAlignmentChanged,
     required this.backgroundColor,
     required this.textColor,
     required this.onBackgroundColorChanged,
@@ -442,6 +405,8 @@ class ThemeSettingsPage extends StatefulWidget {
     required this.onDateFontSizeChanged,
     required this.amPmFontSize,
     required this.onAmPmFontSizeChanged,
+    required this.textHeight,
+    required this.onTextHeightChanged,
   });
 
   @override
@@ -457,7 +422,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
   late bool _currentIs24HourFormat;
   late bool _currentShowSeconds;
   late bool _currentShowMilliseconds;
-  late Alignment _currentTextAlignment;
+  late double _currentTextHeight;
   String? _currentBackgroundImagePath;
 
   @override
@@ -471,7 +436,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
     _currentIs24HourFormat = widget.is24HourFormat;
     _currentShowSeconds = widget.showSeconds;
     _currentShowMilliseconds = widget.showMilliseconds;
-    _currentTextAlignment = widget.textAlignment;
+    _currentTextHeight = widget.textHeight;
     _currentBackgroundImagePath = widget.backgroundImagePath;
   }
 
@@ -603,31 +568,6 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
               },
             ),
           ),
-          // Text Alignment
-          ListTile(
-            title: const Text('Text Alignment'),
-            trailing: DropdownButton<Alignment>(
-              value: _currentTextAlignment,
-              items: const [
-                DropdownMenuItem(
-                  value: Alignment.centerLeft,
-                  child: Text('Left'),
-                ),
-                DropdownMenuItem(
-                  value: Alignment.centerRight,
-                  child: Text('Right'),
-                ),
-              ],
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() {
-                    _currentTextAlignment = value;
-                  });
-                  widget.onTextAlignmentChanged(value);
-                }
-              },
-            ),
-          ),
           // Number Size Slider
           ListTile(
             title: const Text('Number Font Size'),
@@ -693,6 +633,23 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                   _currentAmPmFontSize = value;
                 });
                 widget.onAmPmFontSizeChanged(value);
+              },
+            ),
+          ),
+          // Text Height Slider
+          ListTile(
+            title: const Text('Text Height'),
+            subtitle: Slider(
+              value: _currentTextHeight,
+              min: 0.0,
+              max: 1.0,
+              divisions: 20,
+              label: (_currentTextHeight * 100).round().toString() + '%',
+              onChanged: (value) {
+                setState(() {
+                  _currentTextHeight = value;
+                });
+                widget.onTextHeightChanged(value);
               },
             ),
           ),
