@@ -14,11 +14,7 @@ It's an **app**, it tells the *time*
 -Link with home assistant or some smart home stuff <br>
 
 ###So basically make it become the only dashboard you'll ever need.
-
-
-
-
-
-
-
+<br>
+<br>
+<br>
 **Due to my lack of coding skills and knowledge of *flutter* and *dart* this code is mostly written by AI but you can change that! **
