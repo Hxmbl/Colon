@@ -8,10 +8,10 @@ It's an **app**, it tells the *time*
 ##Roadmap
 
 -Show the time <br>
--Show the weather
--Show your calendar
--Show battery percentage
--Link with home assistant or some smart home stuff
+-Show the weather <br>
+-Show your calendar <br>
+-Show battery percentage <br>
+-Link with home assistant or some smart home stuff <br>
 
 ###So basically make it become the only dashboard you'll ever need.
 
