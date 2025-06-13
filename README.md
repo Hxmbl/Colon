@@ -7,7 +7,7 @@ It's an **app**, it tells the *time*
 
 ##Roadmap
 
--Show the time
+-Show the time <br>
 -Show the weather
 -Show your calendar
 -Show battery percentage
